@@ -69,28 +69,25 @@ object CassandraBootstrap extends Cassandra with Config {
   }
 
   def setup = {
-    val cassandraSetup: Future[
-      (CompletionStage[AsyncResultSet], CompletionStage[AsyncResultSet])
-    ] = for {
-      ks <- createKeyspace(keyspace)
-      t <- createURLTable(table, keyspace)
-    } yield { (ks, t) }
-    cassandraSetup.map {
-      case (
-            kf: CompletionStage[AsyncResultSet],
-            tf: CompletionStage[AsyncResultSet]
-          ) =>
-        Try {
-          kf.toCompletableFuture.get(5L, SECONDS)
-          tf.toCompletableFuture.get(5L, SECONDS)
-        } match {
-          case Success(value) =>
-            logger.info(s"Created keyspace $keyspace and $table ")
-          case Failure(e) =>
-            logger.error(e.toString)
-        }
-      case _ =>
-        logger.info(s"Could not create keyspace $keyspace or table $table")
-    }
+    createKeyspace(keyspace).map(kf =>
+      Try {
+        kf.toCompletableFuture.get(5L, SECONDS)
+      } match {
+        case Success(_) =>
+          logger.info(s"Created keyspace : $keyspace")
+          createURLTable(table, keyspace).map(tf =>
+            Try {
+              tf.toCompletableFuture.get(5L, SECONDS)
+            } match {
+              case Success(_) =>
+                logger.info(s"Created table : $table")
+              case Failure(e) =>
+                logger.error(e.toString)
+            }
+          )
+        case Failure(e) =>
+          logger.error(e.toString)
+      }
+    )
   }
 }
