@@ -61,7 +61,7 @@ object Routes extends Cassandra with AkkaSystem {
     }
 
   val URLAppRoutes =
-    path("trex") {
+    path("trex/shorten") {
       get {
         parameters('url.as[String]) { url =>
           val urlPair = URLPair(stringToURL(url))
@@ -76,12 +76,34 @@ object Routes extends Cassandra with AkkaSystem {
         }
       }
     } ~
-      path("trex") {
+      path("trex/shorten") {
         post {
           entity(as[URLSimple]) { url =>
             val urlPair = URLPair(URL(url))
             onComplete(writeURLPair(urlPair)("urls.url")) {
               case Success(value) => complete(s"The result was $value")
+              case Failure(ex) =>
+                complete(
+                  InternalServerError,
+                  s"An error occurred: ${ex.getMessage}"
+                )
+            }
+          }
+        }
+      } ~
+      path("trex") {
+        get {
+          parameters('url.as[String]) { urlStr =>
+            val url = stringToURL(urlStr)
+            onComplete(readURLPair(url)("urls.url")) {
+              case Success(value) =>
+                complete(
+                  HttpEntity(
+                    ContentTypes.`text/plain(UTF-8)`,
+                    urlString(value)(false)
+                  )
+                )
+
               case Failure(ex) =>
                 complete(
                   InternalServerError,

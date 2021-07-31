@@ -53,11 +53,11 @@ trait Cassandra extends AkkaSystem with LazyLogging {
     written
   }
 
-  def readURLPair(shortedURL: URL)(table: String) = {
+  def readURLPair(shortedURL: URL)(table: String): Future[URL] = {
     CassandraSource(
-      s"SELECT originalURL FROM $table WHERE id = ?",
+      s"SELECT originalURL FROM $table WHERE shortenedurl = ?",
       urlString(shortedURL)(true)
-    ).map(row => row.toString).runWith(Sink.head)
+    ).map(rowToURL).runWith(Sink.head)
   }
 }
 

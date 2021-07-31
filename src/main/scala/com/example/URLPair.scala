@@ -6,7 +6,6 @@ import io.circe._
 import io.circe.generic.auto._
 import io.circe.parser._
 import io.circe.syntax._
-
 import scala.language.implicitConversions
 import scala.util.Random
 
@@ -19,7 +18,7 @@ object URL extends LazyLogging {
   def apply(urlSimple: URLSimple): URL = {
     stringToURL(urlSimple.url)
   }
-  def apply():URL = {
+  def apply(): URL = {
     URL("", "", None)
   }
   def urlString(url: URL)(shortened: Boolean): String =
@@ -50,9 +49,9 @@ object URL extends LazyLogging {
         URL()
     }
   }
-//  implicit def rowToURL(cassandraRow:Row) = {
-//    cassandraRow.getS
-//  }
+  def rowToURL(cassandraRow: Row): URL = {
+    stringToURL(cassandraRow.getString("originalurl"))
+  }
 }
 case class URLPair(shortened: URL, original: URL)
 object URLPair extends LazyLogging {
