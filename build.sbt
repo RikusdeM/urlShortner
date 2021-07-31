@@ -1,8 +1,8 @@
 lazy val akkaHttpVersion = "10.2.5"
 lazy val akkaVersion = "2.6.15"
 lazy val alpakkaVersion = "3.0.2"
-val circeVersion = "0.14.1"
-
+lazy val circeVersion = "0.14.1"
+lazy val akkaHttpJsonVersion = "1.35.3"
 
 lazy val root = (project in file("."))
   .settings(
@@ -16,6 +16,7 @@ lazy val root = (project in file("."))
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
       "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,
+      "de.heikoseeberger" %% "akka-http-circe" % akkaHttpJsonVersion,
       "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion,
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,
       "com.lightbend.akka" %% "akka-stream-alpakka-cassandra" % alpakkaVersion,

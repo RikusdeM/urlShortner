@@ -4,16 +4,22 @@ import akka.actor.ActorSystem
 import akka.stream.alpakka.cassandra.CassandraSessionSettings
 import akka.stream.alpakka.cassandra.scaladsl.CassandraSession
 import akka.stream.alpakka.cassandra.scaladsl.CassandraSessionRegistry
-import akka.stream.scaladsl.Sink
+import akka.stream.alpakka.cassandra.CassandraWriteSettings
+import akka.stream.alpakka.cassandra.scaladsl.CassandraFlow
+import akka.stream.alpakka.cassandra.scaladsl.CassandraSource
+import com.datastax.oss.driver.api.core.cql.{BoundStatement, PreparedStatement}
+import akka.stream.scaladsl.{Sink, Source}
 import com.datastax.oss.driver.api.core.cql.AsyncResultSet
 import com.typesafe.scalalogging.LazyLogging
 
 import java.util.concurrent.CompletionStage
+import scala.collection.immutable
 import scala.concurrent.Future
 import scala.concurrent.duration.SECONDS
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Random, Success, Try}
 
 trait Cassandra extends AkkaSystem with LazyLogging {
+  import com.example.URL._
 
   val sessionSettings = CassandraSessionSettings()
   implicit val cassandraSession: CassandraSession =
@@ -25,6 +31,34 @@ trait Cassandra extends AkkaSystem with LazyLogging {
       .map(_.getString("release_version"))
       .runWith(Sink.head)
 
+  def writeURLPair(
+      urlPair: URLPair
+  )(table: String): Future[immutable.Seq[URLPair]] = {
+    val statementBinder: (URLPair, PreparedStatement) => BoundStatement =
+      (urlPair, preparedStatement) =>
+        preparedStatement.bind(
+          urlString(urlPair.shortened)(true),
+          urlString(urlPair.original)(false)
+        )
+
+    val written: Future[immutable.Seq[URLPair]] = Source(urlPair :: Nil)
+      .via(
+        CassandraFlow.create(
+          CassandraWriteSettings.defaults,
+          s"INSERT INTO $table(shortenedURL,originalURL) VALUES (?, ?)",
+          statementBinder
+        )
+      )
+      .runWith(Sink.seq)
+    written
+  }
+
+  def readURLPair(shortedURL: URL)(table: String) = {
+    CassandraSource(
+      s"SELECT originalURL FROM $table WHERE id = ?",
+      urlString(shortedURL)(true)
+    ).map(row => row.toString).runWith(Sink.head)
+  }
 }
 
 object CassandraBootstrap extends Cassandra with Config {
