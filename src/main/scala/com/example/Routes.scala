@@ -1,53 +1,24 @@
 package com.example
 
-import akka.actor.ActorSystem
-import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.StatusCodes.InternalServerError
 import akka.http.scaladsl.model._
-import akka.http.scaladsl.server.Directives._
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
-import scala.io.StdIn
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Success, Try}
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.Route
+import akka.http.scaladsl.server.{Directive1, Route, StandardRoute}
+import com.example.URL.urlString
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 import io.circe.generic.auto._
 
-object Routes extends Cassandra with AkkaSystem {
+import scala.concurrent.Future
+
+object Routes extends Cassandra with AkkaSystem with Config {
 
   import URL._
+  import RoutesHelpers._
 
-//  val helloRoutes =
-//    path("hello" / Segment) { helloString =>
-//      get {
-//        onComplete(sayHallo(s"Hallo to ${helloString}")) {
-//          case Success(value) =>
-//            complete(
-//              HttpEntity(
-//                ContentTypes.`text/html(UTF-8)`,
-//                s"<h1>$value</h1>"
-//              )
-//            )
-//          case Failure(exception) =>
-//            complete(InternalServerError, exception.toString)
-//        }
-//      }
-//    }
-//  val mathRoutes = path("divide" / IntNumber / IntNumber) {
-//    import akka.http.scaladsl.model.StatusCodes.InternalServerError
-//
-//    (a, b) =>
-//      onComplete(divide(a, b)) {
-//        case Success(value) => complete(s"The result was $value")
-//        case Failure(ex) =>
-//          complete(
-//            InternalServerError,
-//            s"An error occurred: ${ex.getMessage}"
-//          )
-//      }
-//  }
+  val table: String = config.cassandra.keyspace + "." + config.cassandra.table
+
   val cassandraRoutes =
     path("cassandraVersion") {
       onComplete(version) {
@@ -61,32 +32,30 @@ object Routes extends Cassandra with AkkaSystem {
     }
 
   val URLAppRoutes =
-    path("trex/shorten") {
-      get {
-        parameters('url.as[String]) { url =>
-          val urlPair = URLPair(stringToURL(url))
-          onComplete(writeURLPair(urlPair)("urls.url")) {
-            case Success(value) => complete(s"The result was $value")
-            case Failure(ex) =>
-              complete(
-                InternalServerError,
-                s"An error occurred: ${ex.getMessage}"
+    pathPrefix("trex") {
+      path("shorten") {
+        get {
+          parameters('url.as[String]) { url =>
+            val urlPair = URLPair(stringToURL(url))
+            handleWrite {
+              onComplete(
+                writeURLPair(urlPair)(table)
               )
+            }
           }
         }
       }
     } ~
-      path("trex/shorten") {
-        post {
-          entity(as[URLSimple]) { url =>
-            val urlPair = URLPair(URL(url))
-            onComplete(writeURLPair(urlPair)("urls.url")) {
-              case Success(value) => complete(s"The result was $value")
-              case Failure(ex) =>
-                complete(
-                  InternalServerError,
-                  s"An error occurred: ${ex.getMessage}"
+      pathPrefix("trex") {
+        path("shorten") {
+          post {
+            entity(as[URLSimple]) { urlSimple =>
+              val urlPair = URLPair(URL(urlSimple))
+              handleWrite {
+                onComplete(
+                  writeURLPair(urlPair)(table)
                 )
+              }
             }
           }
         }
@@ -95,24 +64,63 @@ object Routes extends Cassandra with AkkaSystem {
         get {
           parameters('url.as[String]) { urlStr =>
             val url = stringToURL(urlStr)
-            onComplete(readURLPair(url)("urls.url")) {
-              case Success(value) =>
-                complete(
-                  HttpEntity(
-                    ContentTypes.`text/plain(UTF-8)`,
-                    urlString(value)(false)
-                  )
-                )
-
-              case Failure(ex) =>
-                complete(
-                  InternalServerError,
-                  s"An error occurred: ${ex.getMessage}"
-                )
+            handleRead {
+              onComplete(
+                readURLPair(url)(table)
+              )
+            }
+          }
+        }
+      } ~
+      pathPrefix("trex") {
+        post {
+          entity(as[URLSimple]) { urlSimple =>
+            handleRead {
+              onComplete(
+                readURLPair(URL.apply(urlSimple))(table)
+              )
             }
           }
         }
       }
 
   val routes: Route = cassandraRoutes ~ URLAppRoutes
+}
+
+object RoutesHelpers {
+  type ReadFun = Directive1[Try[URL]] => Route
+  val handleRead: ReadFun = (sd: Directive1[Try[URL]]) => {
+    sd {
+      case Success(value) =>
+        complete(
+          HttpEntity(
+            ContentTypes.`text/plain(UTF-8)`,
+            urlString(value)(false)
+          )
+        )
+
+      case Failure(ex) =>
+        complete(
+          InternalServerError,
+          s"An error occurred: ${ex.getMessage}"
+        )
+    }
+  }
+  type WriteFun = Directive1[Try[Seq[URLPair]]] => Route
+  val handleWrite: WriteFun = (sd: Directive1[Try[Seq[URLPair]]]) => {
+    sd {
+      case Success(value) =>
+        complete(
+          HttpEntity(
+            ContentTypes.`application/json`,
+            URLSimple(value.head.shortened)
+          )
+        )
+      case Failure(ex) =>
+        complete(
+          InternalServerError,
+          s"An error occurred: ${ex.getMessage}"
+        )
+    }
+  }
 }

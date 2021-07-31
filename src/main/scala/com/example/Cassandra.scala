@@ -10,6 +10,7 @@ import akka.stream.alpakka.cassandra.scaladsl.CassandraSource
 import com.datastax.oss.driver.api.core.cql.{BoundStatement, PreparedStatement}
 import akka.stream.scaladsl.{Sink, Source}
 import com.datastax.oss.driver.api.core.cql.AsyncResultSet
+import com.example.Columns.{original_url, shortened_url}
 import com.typesafe.scalalogging.LazyLogging
 
 import java.util.concurrent.CompletionStage
@@ -21,7 +22,7 @@ import scala.util.{Failure, Random, Success, Try}
 trait Cassandra extends AkkaSystem with LazyLogging {
   import com.example.URL._
 
-  val sessionSettings = CassandraSessionSettings()
+  val sessionSettings: CassandraSessionSettings = CassandraSessionSettings()
   implicit val cassandraSession: CassandraSession =
     CassandraSessionRegistry.get(system).sessionFor(sessionSettings)
 
@@ -45,7 +46,7 @@ trait Cassandra extends AkkaSystem with LazyLogging {
       .via(
         CassandraFlow.create(
           CassandraWriteSettings.defaults,
-          s"INSERT INTO $table(shortenedURL,originalURL) VALUES (?, ?)",
+          s"INSERT INTO $table(${shortened_url.toString},${original_url.toString}) VALUES (?, ?)",
           statementBinder
         )
       )
@@ -55,7 +56,7 @@ trait Cassandra extends AkkaSystem with LazyLogging {
 
   def readURLPair(shortedURL: URL)(table: String): Future[URL] = {
     CassandraSource(
-      s"SELECT originalURL FROM $table WHERE shortenedurl = ?",
+      s"SELECT ${original_url.toString} FROM $table WHERE ${shortened_url.toString} = ?",
       urlString(shortedURL)(true)
     ).map(rowToURL).runWith(Sink.head)
   }
@@ -88,8 +89,8 @@ object CassandraBootstrap extends Cassandra with Config {
       keyspace: String
   ): Future[CompletionStage[AsyncResultSet]] = {
     val table = s"""CREATE TABLE ${keyspace}.${name} ( 
-                   |   shortenedURL text PRIMARY KEY,             
-                   |   originalURL text );""".stripMargin
+                   |   ${shortened_url.toString} text PRIMARY KEY,
+                   |   ${original_url.toString} text );""".stripMargin
     cassandraSession
       .underlying()
       .map { cqlSession =>
@@ -124,4 +125,9 @@ object CassandraBootstrap extends Cassandra with Config {
       }
     )
   }
+}
+
+object Columns extends Enumeration {
+  type Columns = Value
+  val original_url, shortened_url = Value
 }

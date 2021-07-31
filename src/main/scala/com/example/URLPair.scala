@@ -1,15 +1,26 @@
 package com.example
 
 import com.datastax.oss.driver.api.core.cql.Row
+import com.example.Columns.original_url
 import com.typesafe.scalalogging.LazyLogging
 import io.circe._
 import io.circe.generic.auto._
 import io.circe.parser._
 import io.circe.syntax._
+
 import scala.language.implicitConversions
 import scala.util.Random
 
 case class URLSimple(url: String)
+object URLSimple{
+  import URL._
+  def apply(url:URL):URLSimple = {
+    URLSimple(urlString(url)(true))
+  }
+  implicit def URLSimpleToJson (urlSimple:URLSimple):String = {
+    urlSimple.asJson.noSpaces
+  }
+}
 
 case class URL(protocol: String, host: String, port: Option[Int])
 object URL extends LazyLogging {
@@ -50,7 +61,9 @@ object URL extends LazyLogging {
     }
   }
   def rowToURL(cassandraRow: Row): URL = {
-    stringToURL(cassandraRow.getString("originalurl"))
+    stringToURL(
+      cassandraRow.getString(s"${original_url.toString}")
+    )
   }
 }
 case class URLPair(shortened: URL, original: URL)

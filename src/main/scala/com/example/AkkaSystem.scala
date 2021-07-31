@@ -2,11 +2,11 @@ package com.example
 
 import akka.actor.ActorSystem
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 
 trait AkkaSystem {
 
-  implicit val system = ActorSystem("my-system")
-  implicit val executionContext = ExecutionContext.global
+  implicit val system: ActorSystem = ActorSystem("my-system")
+  implicit val executionContext: ExecutionContextExecutor = ExecutionContext.global
 
 }
