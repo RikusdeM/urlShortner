@@ -22,9 +22,14 @@ import scala.util.{Failure, Random, Success, Try}
 trait Cassandra extends AkkaSystem with LazyLogging {
   import com.example.URL._
 
-  val sessionSettings: CassandraSessionSettings = CassandraSessionSettings()
   implicit val cassandraSession: CassandraSession =
-    CassandraSessionRegistry.get(system).sessionFor(sessionSettings)
+    try {
+      val sessionSettings: CassandraSessionSettings = CassandraSessionSettings()
+      CassandraSessionRegistry.get(system).sessionFor(sessionSettings)
+    } catch {
+      case exception: Exception =>
+        throw new Exception(exception)
+    }
 
   val version: Future[String] =
     cassandraSession
@@ -125,6 +130,19 @@ object CassandraBootstrap extends Cassandra with Config {
       }
     )
   }
+
+  def setupNew: Future[Try[String]] = {
+    for {
+      ks <- createKeyspace(keyspace)
+      kf = ks.toCompletableFuture.get(5L, SECONDS)
+      tb <- createURLTable(table, keyspace)
+      tf = tb.toCompletableFuture.get(5L, SECONDS)
+      done = Success(s"Created keyspace: $keyspace with table: $table")
+    } yield {
+      done
+    }
+  }
+
 }
 
 object Columns extends Enumeration {

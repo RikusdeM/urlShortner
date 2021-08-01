@@ -1,0 +1,131 @@
+{
+	"info": {
+		"_postman_id": "74fce339-505a-4453-a701-963858640c8e",
+		"name": "MOIA",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "cassandraVersion",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:8080/cassandraVersion",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"cassandraVersion"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "shorten",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"url\": \"http://www.reddit.com\"}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:8080/trex/shorten",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"trex",
+						"shorten"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "shorten",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:8080/trex/shorten?url=http://www.facebook.com:80",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"trex",
+						"shorten"
+					],
+					"query": [
+						{
+							"key": "url",
+							"value": "http://www.facebook.com:80"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "lookup",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:8080/trex?url=http://CxKSXvGS",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"trex"
+					],
+					"query": [
+						{
+							"key": "url",
+							"value": "http://CxKSXvGS"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "lookup",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"url\": \"http://CxKSXvGS\"}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:8080/trex",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"trex"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
