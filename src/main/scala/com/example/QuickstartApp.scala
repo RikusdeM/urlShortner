@@ -1,19 +1,13 @@
 package com.example
 
-import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.server.Route
-import akka.stream.ActorMaterializer
 import com.example.Routes.routes
-
-import scala.concurrent.{ExecutionContext, Future}
 import scala.io.StdIn
 import scala.util.{Failure, Success, Try}
 
-//#main-class
 object QuickstartApp extends App with Cassandra with AkkaSystem with Config {
 
-  val bindingFuture = Http().newServerAt("localhost", 8080).bind(routes)
+  val bindingFuture = Http().newServerAt(config.myApp.host, config.myApp.port).bind(routes)
 
   def startCassandra(retries: Int): Unit = {
     if (retries <= 10) {
@@ -38,7 +32,7 @@ object QuickstartApp extends App with Cassandra with AkkaSystem with Config {
   startCassandra(0)
 
   logger.info(
-    s"Server online at http://localhost:8080/\nPress RETURN to stop..."
+    s"Server online at http://${config.myApp.host}:${config.myApp.port}/\nPress RETURN to stop..."
   )
   StdIn.readLine() // let it run until user presses return
   bindingFuture

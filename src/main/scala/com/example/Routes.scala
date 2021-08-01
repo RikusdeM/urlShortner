@@ -2,15 +2,12 @@ package com.example
 
 import akka.http.scaladsl.model.StatusCodes.InternalServerError
 import akka.http.scaladsl.model._
-
 import scala.util.{Failure, Success, Try}
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.{Directive1, Route, StandardRoute}
+import akka.http.scaladsl.server.{Directive1, Route}
 import com.example.URL.urlString
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 import io.circe.generic.auto._
-
-import scala.concurrent.Future
 
 object Routes extends Cassandra with AkkaSystem with Config {
 

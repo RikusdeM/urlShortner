@@ -27,6 +27,8 @@ object URL extends LazyLogging {
   val protocolSeparator = "://"
   val portSeparator = ':'
   val defaultServiceProtocol = "http"
+  val URLException = new Exception("PLEASE PROVIDE VALID URL")
+
   def apply(urlSimple: URLSimple): URL = {
     stringToURL(urlSimple.url)
   }
@@ -54,7 +56,7 @@ object URL extends LazyLogging {
         hostPortSplit(hostPort,protocol)
       case hostPort :: Nil =>
         hostPortSplit(hostPort,defaultServiceProtocol)
-      case _ => throw new Exception("Please provide valid URL")
+      case _ => throw URLException
     }
   }
   implicit def URLToJson(url: URL): String = {
