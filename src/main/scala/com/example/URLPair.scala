@@ -12,12 +12,12 @@ import scala.language.implicitConversions
 import scala.util.Random
 
 case class URLSimple(url: String)
-object URLSimple{
+object URLSimple {
   import URL._
-  def apply(url:URL):URLSimple = {
+  def apply(url: URL): URLSimple = {
     URLSimple(urlString(url)(true))
   }
-  implicit def URLSimpleToJson (urlSimple:URLSimple):String = {
+  implicit def URLSimpleToJson(urlSimple: URLSimple): String = {
     urlSimple.asJson.noSpaces
   }
 }
@@ -26,6 +26,7 @@ case class URL(protocol: String, host: String, port: Option[Int])
 object URL extends LazyLogging {
   val protocolSeparator = "://"
   val portSeparator = ':'
+  val defaultServiceProtocol = "http"
   def apply(urlSimple: URLSimple): URL = {
     stringToURL(urlSimple.url)
   }
@@ -38,14 +39,21 @@ object URL extends LazyLogging {
         s"${url.protocol}$protocolSeparator${url.host}:${port.toString}"
       case _ => s"${url.protocol}$protocolSeparator${url.host}"
     }
+
+  val hostPortSplit = (hostPort:String, protocol:String) => {
+    hostPort.split(portSeparator).toList match {
+      case host :: port :: Nil =>
+        URL(protocol, host, Some(port.toInt))
+      case host :: Nil => URL(protocol, host, None)
+    }
+  }
+
   def stringToURL(urlString: String): URL = {
     urlString.split(protocolSeparator).toList match {
-      case protocol :: hostPort =>
-        hostPort.mkString("").split(portSeparator).toList match {
-          case host :: port :: Nil =>
-            URL(protocol, host, Some(port.mkString("").toInt))
-          case host :: Nil => URL(protocol, host.mkString(""), None)
-        }
+      case protocol :: hostPort :: Nil =>
+        hostPortSplit(hostPort,protocol)
+      case hostPort :: Nil =>
+        hostPortSplit(hostPort,defaultServiceProtocol)
       case _ => throw new Exception("Please provide valid URL")
     }
   }
