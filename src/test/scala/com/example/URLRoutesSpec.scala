@@ -3,23 +3,22 @@ package com.example
 //#user-routes-spec
 //#test-top
 import akka.actor.ActorSystem
-import akka.actor.testkit.typed.scaladsl.{ActorTestKit, TestProbe}
-import akka.http.scaladsl.Http
+import akka.actor.testkit.typed.scaladsl.ActorTestKit
 import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model._
-import akka.http.scaladsl.server.Directives.{as, entity}
+import akka.http.scaladsl.server.Directives.{as, complete, entity}
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
-import com.datastax.oss.driver.api.core.CqlSession
-import com.example.URL.{stringToURL, urlString}
+import com.example
+import com.example.CassandraBootstrap.startCassandraConnection
+import com.example.URL.{defaultServiceProtocol, protocolSeparator}
+import com.github.nosan.embedded.cassandra.api.connection.DefaultCassandraConnectionFactory
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import io.circe.generic.auto._
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
-import org.cassandraunit.CQLDataLoader
-import org.cassandraunit.dataset.cql.ClassPathCQLDataSet
-import org.cassandraunit.utils.EmbeddedCassandraServerHelper
+import com.github.nosan.embedded.cassandra.EmbeddedCassandraFactory
 import org.scalatest.BeforeAndAfterAll
 
 import scala.concurrent.ExecutionContextExecutor
@@ -44,28 +43,32 @@ class URLRoutesSpec
   implicit def default(implicit system: ActorSystem) =
     RouteTestTimeout(5.seconds)
 
-   def startCassandra(): Unit = {
-    EmbeddedCassandraServerHelper.startEmbeddedCassandra()
-    cassandraSession.underlying().onComplete {
-      case Success(cqlSession) =>
-        new CQLDataLoader(cqlSession)
-          .load(
-            new ClassPathCQLDataSet("schema.cql", config.cassandra.keyspace)
-          )
-      case Failure(exception) => throw new Exception(exception)
-    }
+  val shortenedUrl = "http://AcwMh6H3"
+  val originalUrl = "www.google.com"
+
+  override def beforeAll(): Unit = {
+    val cassandraFactory = new EmbeddedCassandraFactory()
+    val cassandra = cassandraFactory.create()
+    cassandra.start()
+    val cassandraConnectionFactory = new DefaultCassandraConnectionFactory()
+    startCassandraConnection(0)
+    Thread.sleep(10000)
+    val table: String = config.cassandra.keyspace + "." + config.cassandra.table
+    val originalURLPair = URLPair(
+      URL(URLSimple(shortenedUrl)),
+      URL(URLSimple(originalUrl))
+    )
+    writeURLPair(originalURLPair)(table)
+    Thread.sleep(1000)
   }
 
-//  override def afterAll(): Unit = {
-//    EmbeddedCassandraServerHelper.stopEmbeddedCassandra()
-//  }
+  override def afterAll(): Unit = {
+    cassandraSession.close(testExecutionContext)
+  }
 
   "URLRoutes" should {
-
-    val originalUrl = "www.google.com"
     "return shortened URL on (GET /trex/shorten?url=$URL)" in {
       val request = HttpRequest(uri = s"/trex/shorten?url=$originalUrl")
-
       request ~> routes ~> check {
         status should ===(StatusCodes.OK)
         contentType should ===(ContentTypes.`application/json`)
@@ -73,24 +76,25 @@ class URLRoutesSpec
       }
     }
 
-    "return original URL on (GET /trex/trex?url=$URL)" in {
-      val shortenedUrl = "http://AcwMh6H3"
-      val request = HttpRequest(uri = s"/trex/?url=$shortenedUrl")
-
-      //      request ~> routes ~> check {
-      //        status should ===(StatusCodes.OK)
-      //        contentType should ===(ContentTypes.`application/json`)
-      //        entity(as[String]) should ===(originalUrl)
-      //      }
+    "return original URL on (GET /trex?url=$URL)" in {
+      val request = HttpRequest(uri = s"/trex?url=$shortenedUrl")
+      request ~> routes ~> check {
+        status should ===(StatusCodes.OK)
+        contentType should ===(ContentTypes.`application/json`)
+        entityAs[URLSimple].url should ===(
+          s"${defaultServiceProtocol}${protocolSeparator}${originalUrl}"
+        )
+      }
     }
-
 
     "return shortened URL on (POST /trex/shorten)" in {
       val url = URLSimple(originalUrl)
-      val userEntity = Marshal(url).to[MessageEntity].futureValue // futureValue is from ScalaFutures
+      val userEntity =
+        Marshal(url)
+          .to[MessageEntity]
+          .futureValue
 
       val request = Post("/trex/shorten").withEntity(userEntity)
-
       request ~> routes ~> check {
         status should ===(StatusCodes.OK)
         contentType should ===(ContentTypes.`application/json`)
@@ -98,23 +102,21 @@ class URLRoutesSpec
       }
     }
 
-//
-//    "be able to remove users (DELETE /users)" in {
-//      // user the RequestBuilding DSL provided by ScalatestRouteSpec:
-//      val request = Delete(uri = "/users/Kapi")
-//
-//      request ~> routes ~> check {
-//        status should ===(StatusCodes.OK)
-//
-//        // we expect the response to be json:
-//        contentType should ===(ContentTypes.`application/json`)
-//
-//        // and no entries should be in the list:
-//        entityAs[String] should ===("""{"description":"User Kapi deleted."}""")
-//      }
-//    }
-//    //#actual-test
+    "return original URL on (POST /trex)" in {
+      val url = URLSimple(shortenedUrl)
+      val userEntity =
+        Marshal(url)
+          .to[MessageEntity]
+          .futureValue
+
+      val request = Post("/trex").withEntity(userEntity)
+      request ~> routes ~> check {
+        status should ===(StatusCodes.OK)
+        contentType should ===(ContentTypes.`application/json`)
+        entityAs[URLSimple].url should ===(
+          s"${defaultServiceProtocol}${protocolSeparator}${originalUrl}"
+        )
+      }
+    }
   }
 }
-//#set-up
-//#user-routes-spec

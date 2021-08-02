@@ -11,6 +11,7 @@ import com.datastax.oss.driver.api.core.cql.{BoundStatement, PreparedStatement}
 import akka.stream.scaladsl.{Sink, Source}
 import com.datastax.oss.driver.api.core.cql.AsyncResultSet
 import com.example.Columns.{original_url, shortened_url}
+import com.example.QuickstartApp.{config, logger}
 import com.typesafe.scalalogging.LazyLogging
 
 import java.util.concurrent.CompletionStage
@@ -140,6 +141,25 @@ object CassandraBootstrap extends Cassandra with Config {
       done = Success(s"Created keyspace: $keyspace with table: $table")
     } yield {
       done
+    }
+  }
+
+  def startCassandraConnection(retriesCount: Int): Unit = {
+    if (retriesCount <= 10) {
+      CassandraBootstrap.setupNew.onComplete {
+        case Success(tryConn) => {
+          tryConn match {
+            case Success(s) => logger.info(s)
+            case Failure(e) =>
+              logger.error(e.toString + "retrying to setup Cassandra")
+              startCassandraConnection(retriesCount + 1)
+          }
+        }
+        case Failure(exception) => logger.error(exception.toString)
+      }
+    } else {
+      Thread.sleep(config.myApp.routes.askTimeout.toMillis)
+      startCassandraConnection(retriesCount + 1)
     }
   }
 

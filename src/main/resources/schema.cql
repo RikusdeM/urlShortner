@@ -1,7 +1,7 @@
--- CREATE KEYSPACE urls WITH REPLICATION = {
---     'class' : 'NetworkTopologyStrategy',
---     'datacenter1' : 1
---     };
+CREATE KEYSPACE urls WITH REPLICATION = {
+    'class' : 'NetworkTopologyStrategy',
+    'datacenter1' : 1
+    };
 
 CREATE TABLE urls.url
 (

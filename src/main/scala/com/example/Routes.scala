@@ -91,8 +91,8 @@ object RoutesHelpers {
       case Success(value) =>
         complete(
           HttpEntity(
-            ContentTypes.`text/plain(UTF-8)`,
-            urlString(value)(false)
+            ContentTypes.`application/json`,
+            URLSimple(urlString(value)(false))
           )
         )
 

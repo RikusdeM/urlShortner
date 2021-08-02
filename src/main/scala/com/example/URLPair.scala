@@ -42,11 +42,12 @@ object URL extends LazyLogging {
       case _ => s"${url.protocol}$protocolSeparator${url.host}"
     }
 
-  val hostPortSplit = (hostPort:String, protocol:String) => {
+  val hostPortSplit: (String, String) => URL = (hostPort:String, protocol:String) => {
     hostPort.split(portSeparator).toList match {
       case host :: port :: Nil =>
         URL(protocol, host, Some(port.toInt))
       case host :: Nil => URL(protocol, host, None)
+      case _ => throw new Exception("Cannot split URL correctly")
     }
   }
 

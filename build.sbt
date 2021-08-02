@@ -28,7 +28,7 @@ lazy val root = (project in file("."))
       "com.typesafe.akka" %% "akka-http-testkit" % akkaHttpVersion % Test,
       "com.typesafe.akka" %% "akka-actor-testkit-typed" % akkaVersion % Test,
       "org.scalatest" %% "scalatest" % "3.1.4" % Test,
-      "org.cassandraunit" % "cassandra-unit" % "4.3.1.0" % Test
+      "com.github.nosan" % "embedded-cassandra" % "3.0.1" % Test
     )
   )
   .enablePlugins(sbtdocker.DockerPlugin,
