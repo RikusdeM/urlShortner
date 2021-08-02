@@ -1,10 +1,11 @@
 package com.example
 
-import akka.http.scaladsl.model.StatusCodes.InternalServerError
+import akka.http.scaladsl.model.StatusCodes.{BadRequest, InternalServerError}
 import akka.http.scaladsl.model._
+
 import scala.util.{Failure, Success, Try}
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.{Directive1, Route}
+import akka.http.scaladsl.server.{Directive1, Route, StandardRoute}
 import com.example.URL.urlString
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 import io.circe.generic.auto._
@@ -32,12 +33,15 @@ object Routes extends Cassandra with AkkaSystem with Config {
     pathPrefix("trex") {
       path("shorten") {
         get {
-          parameters('url.as[String]) { url =>
-            val urlPair = URLPair(stringToURL(url))
-            handleWrite {
-              onComplete(
-                writeURLPair(urlPair)(table)
-              )
+          parameters('url.as[String]) { urlStr =>
+            stringToURL(urlStr) match {
+              case Some(url) =>
+                handleWrite {
+                  onComplete(
+                    writeURLPair(URLPair(url))(table)
+                  )
+                }
+              case None => invalidInputError
             }
           }
         }
@@ -47,11 +51,14 @@ object Routes extends Cassandra with AkkaSystem with Config {
         path("shorten") {
           post {
             entity(as[URLSimple]) { urlSimple =>
-              val urlPair = URLPair(URL(urlSimple))
-              handleWrite {
-                onComplete(
-                  writeURLPair(urlPair)(table)
-                )
+              URL(urlSimple) match {
+                case Some(url) =>
+                  handleWrite {
+                    onComplete(
+                      writeURLPair(URLPair(url))(table)
+                    )
+                  }
+                case None => invalidInputError
               }
             }
           }
@@ -60,11 +67,14 @@ object Routes extends Cassandra with AkkaSystem with Config {
       path("trex") {
         get {
           parameters('url.as[String]) { urlStr =>
-            val url = stringToURL(urlStr)
-            handleRead {
-              onComplete(
-                readURLPair(url)(table)
-              )
+            stringToURL(urlStr) match {
+              case Some(url) =>
+                handleRead {
+                  onComplete(
+                    readURLPair(url)(table)
+                  )
+                }
+              case None => invalidInputError
             }
           }
         }
@@ -72,10 +82,14 @@ object Routes extends Cassandra with AkkaSystem with Config {
       pathPrefix("trex") {
         post {
           entity(as[URLSimple]) { urlSimple =>
-            handleRead {
-              onComplete(
-                readURLPair(URL.apply(urlSimple))(table)
-              )
+            URL.apply(urlSimple) match {
+              case Some(url) =>
+                handleRead {
+                  onComplete(
+                    readURLPair(url)(table)
+                  )
+                }
+              case None => invalidInputError
             }
           }
         }
@@ -85,22 +99,27 @@ object Routes extends Cassandra with AkkaSystem with Config {
 }
 
 object RoutesHelpers {
-  type ReadFun = Directive1[Try[URL]] => Route
-  val handleRead: ReadFun = (sd: Directive1[Try[URL]]) => {
+  type ReadFun = Directive1[Try[Option[Option[URL]]]] => Route
+  val handleRead: ReadFun = (sd: Directive1[Try[Option[Option[URL]]]]) => {
     sd {
-      case Success(value) =>
-        complete(
-          HttpEntity(
-            ContentTypes.`application/json`,
-            URLSimple(urlString(value)(false))
-          )
-        )
-
+      case Success(optionalURL) =>
+        optionalURL match {
+          case Some(optionUrl) => {
+            optionUrl match {
+              case Some(urlFinal) =>
+                complete(
+                  HttpEntity(
+                    ContentTypes.`application/json`,
+                    URLSimple(urlString(urlFinal)(false))
+                  )
+                )
+              case None => cassandraReadError
+            }
+          }
+          case None => cassandraReadError
+        }
       case Failure(ex) =>
-        complete(
-          InternalServerError,
-          s"An error occurred: ${ex.getMessage}"
-        )
+        internalServerError(ex)
     }
   }
   type WriteFun = Directive1[Try[Seq[URLPair]]] => Route
@@ -114,10 +133,24 @@ object RoutesHelpers {
           )
         )
       case Failure(ex) =>
-        complete(
-          InternalServerError,
-          s"An error occurred: ${ex.getMessage}"
-        )
+        internalServerError(ex)
     }
   }
+
+  val internalServerError: Throwable => StandardRoute = (ex: Throwable) =>
+    complete(
+      InternalServerError,
+      s"An error occurred: ${ex.getMessage}"
+    )
+
+  val invalidInputError: StandardRoute = complete(
+    BadRequest,
+    s"Please provide a valid url input"
+  )
+
+  val cassandraReadError: StandardRoute =
+    complete(
+      InternalServerError,
+      "Could not read entry form Cassandra"
+    )
 }

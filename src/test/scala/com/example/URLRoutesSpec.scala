@@ -1,7 +1,5 @@
 package com.example
 
-//#user-routes-spec
-//#test-top
 import akka.actor.ActorSystem
 import akka.actor.testkit.typed.scaladsl.ActorTestKit
 import akka.http.scaladsl.marshalling.Marshal
@@ -21,7 +19,7 @@ import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 import com.github.nosan.embedded.cassandra.EmbeddedCassandraFactory
 import org.scalatest.BeforeAndAfterAll
 
-import scala.concurrent.ExecutionContextExecutor
+import scala.concurrent.{ExecutionContextExecutor, Future}
 import scala.concurrent.duration.DurationInt
 import scala.util.{Failure, Success}
 
@@ -54,11 +52,22 @@ class URLRoutesSpec
     startCassandraConnection(0)
     Thread.sleep(10000)
     val table: String = config.cassandra.keyspace + "." + config.cassandra.table
-    val originalURLPair = URLPair(
-      URL(URLSimple(shortenedUrl)),
-      URL(URLSimple(originalUrl))
-    )
-    writeURLPair(originalURLPair)(table)
+    val originalURLPair = for {
+      shortened <- URL(URLSimple(shortenedUrl))
+      original <- URL(URLSimple(originalUrl))
+    } yield { URLPair(shortened, original) }
+
+    originalURLPair match {
+      case Some(urlPair) =>
+        writeURLPair(urlPair)(table).map(uP =>
+          logger.info(s"Written URLPair $uP")
+        ).recoverWith {
+          case exception: Exception => throw new Exception(exception)
+        }
+      case None =>
+        logger.error(s"Could not write initial URLPair")
+    }
+
     Thread.sleep(1000)
   }
 

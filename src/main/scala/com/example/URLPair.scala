@@ -29,7 +29,7 @@ object URL extends LazyLogging {
   val defaultServiceProtocol = "http"
   val URLException = new Exception("PLEASE PROVIDE VALID URL")
 
-  def apply(urlSimple: URLSimple): URL = {
+  def apply(urlSimple: URLSimple): Option[URL] = {
     stringToURL(urlSimple.url)
   }
   def apply(): URL = {
@@ -42,22 +42,22 @@ object URL extends LazyLogging {
       case _ => s"${url.protocol}$protocolSeparator${url.host}"
     }
 
-  val hostPortSplit: (String, String) => URL = (hostPort:String, protocol:String) => {
+  val hostPortSplit: (String, String) => Option[URL] = (hostPort:String, protocol:String) => {
     hostPort.split(portSeparator).toList match {
       case host :: port :: Nil =>
-        URL(protocol, host, Some(port.toInt))
-      case host :: Nil => URL(protocol, host, None)
-      case _ => throw new Exception("Cannot split URL correctly")
+        Some(URL(protocol, host, Some(port.toInt)))
+      case host :: Nil => Some(URL(protocol, host, None))
+      case _ => None
     }
   }
 
-  def stringToURL(urlString: String): URL = {
+  def stringToURL(urlString: String): Option[URL] = {
     urlString.split(protocolSeparator).toList match {
       case protocol :: hostPort :: Nil =>
         hostPortSplit(hostPort,protocol)
       case hostPort :: Nil =>
         hostPortSplit(hostPort,defaultServiceProtocol)
-      case _ => throw URLException
+      case _ => None
     }
   }
   implicit def URLToJson(url: URL): String = {
@@ -71,7 +71,7 @@ object URL extends LazyLogging {
         URL()
     }
   }
-  def rowToURL(cassandraRow: Row): URL = {
+  def rowToURL(cassandraRow: Row): Option[URL] = {
     stringToURL(
       cassandraRow.getString(s"${original_url.toString}")
     )

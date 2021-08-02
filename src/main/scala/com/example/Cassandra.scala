@@ -8,7 +8,7 @@ import akka.stream.alpakka.cassandra.CassandraWriteSettings
 import akka.stream.alpakka.cassandra.scaladsl.CassandraFlow
 import akka.stream.alpakka.cassandra.scaladsl.CassandraSource
 import com.datastax.oss.driver.api.core.cql.{BoundStatement, PreparedStatement}
-import akka.stream.scaladsl.{Sink, Source}
+import akka.stream.scaladsl.{Flow, Sink, Source}
 import com.datastax.oss.driver.api.core.cql.AsyncResultSet
 import com.example.Columns.{original_url, shortened_url}
 import com.example.QuickstartApp.{config, logger}
@@ -60,11 +60,15 @@ trait Cassandra extends AkkaSystem with LazyLogging {
     written
   }
 
-  def readURLPair(shortedURL: URL)(table: String): Future[URL] = {
+  def readURLPair(
+      shortedURL: URL
+  )(table: String): Future[Option[Option[URL]]] = {
     CassandraSource(
       s"SELECT ${original_url.toString} FROM $table WHERE ${shortened_url.toString} = ?",
       urlString(shortedURL)(true)
-    ).map(rowToURL).runWith(Sink.head)
+    ).map(rowToURL)
+      .filter(url => url.isDefined)
+      .runWith(Sink.headOption)
   }
 }
 
@@ -109,35 +113,12 @@ object CassandraBootstrap extends Cassandra with Config {
       }
   }
 
-  def setup = {
-    createKeyspace(keyspace).map(kf =>
-      Try {
-        kf.toCompletableFuture.get(5L, SECONDS)
-      } match {
-        case Success(_) =>
-          logger.info(s"Created keyspace : $keyspace")
-          createURLTable(table, keyspace).map(tf =>
-            Try {
-              tf.toCompletableFuture.get(5L, SECONDS)
-            } match {
-              case Success(_) =>
-                logger.info(s"Created table : $table")
-              case Failure(e) =>
-                logger.error(e.toString)
-            }
-          )
-        case Failure(e) =>
-          logger.error(e.toString)
-      }
-    )
-  }
-
   def setupNew: Future[Try[String]] = {
     for {
       ks <- createKeyspace(keyspace)
-      kf = ks.toCompletableFuture.get(5L, SECONDS)
+      _ = ks.toCompletableFuture.get(5L, SECONDS)
       tb <- createURLTable(table, keyspace)
-      tf = tb.toCompletableFuture.get(5L, SECONDS)
+      _ = tb.toCompletableFuture.get(5L, SECONDS)
       done = Success(s"Created keyspace: $keyspace with table: $table")
     } yield {
       done
