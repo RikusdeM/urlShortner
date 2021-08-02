@@ -44,11 +44,11 @@ class URLRoutesSpec
   val shortenedUrl = "http://AcwMh6H3"
   val originalUrl = "www.google.com"
 
+  val cassandraFactory = new EmbeddedCassandraFactory()
+  val cassandra = cassandraFactory.create()
+
   override def beforeAll(): Unit = {
-    val cassandraFactory = new EmbeddedCassandraFactory()
-    val cassandra = cassandraFactory.create()
     cassandra.start()
-    val cassandraConnectionFactory = new DefaultCassandraConnectionFactory()
     startCassandraConnection(0)
     Thread.sleep(10000)
     val table: String = config.cassandra.keyspace + "." + config.cassandra.table
@@ -72,7 +72,10 @@ class URLRoutesSpec
   }
 
   override def afterAll(): Unit = {
-    cassandraSession.close(testExecutionContext)
+    cassandraSession.close(testExecutionContext).onComplete({
+      case Success(value) => cassandra.stop()
+      case Failure(exception) => logger.error("Could not close CassandraSession")
+    })
   }
 
   "URLRoutes" should {
