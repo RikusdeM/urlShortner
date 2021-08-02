@@ -2,7 +2,6 @@ package com.example
 
 import akka.http.scaladsl.model.StatusCodes.{BadRequest, InternalServerError}
 import akka.http.scaladsl.model._
-
 import scala.util.{Failure, Success, Try}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{Directive1, Route, StandardRoute}

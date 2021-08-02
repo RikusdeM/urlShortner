@@ -3,9 +3,7 @@ package com.example
 import akka.http.scaladsl.Http
 import com.example.CassandraBootstrap.startCassandraConnection
 import com.example.Routes.routes
-
 import scala.io.StdIn
-import scala.util.{Failure, Success, Try}
 
 object QuickstartApp extends App with Cassandra with AkkaSystem with Config {
 

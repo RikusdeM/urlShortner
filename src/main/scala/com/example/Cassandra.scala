@@ -1,6 +1,5 @@
 package com.example
 
-import akka.actor.ActorSystem
 import akka.stream.alpakka.cassandra.CassandraSessionSettings
 import akka.stream.alpakka.cassandra.scaladsl.CassandraSession
 import akka.stream.alpakka.cassandra.scaladsl.CassandraSessionRegistry
@@ -8,17 +7,15 @@ import akka.stream.alpakka.cassandra.CassandraWriteSettings
 import akka.stream.alpakka.cassandra.scaladsl.CassandraFlow
 import akka.stream.alpakka.cassandra.scaladsl.CassandraSource
 import com.datastax.oss.driver.api.core.cql.{BoundStatement, PreparedStatement}
-import akka.stream.scaladsl.{Flow, Sink, Source}
+import akka.stream.scaladsl.{Sink, Source}
 import com.datastax.oss.driver.api.core.cql.AsyncResultSet
 import com.example.Columns.{original_url, shortened_url}
-import com.example.QuickstartApp.{config, logger}
 import com.typesafe.scalalogging.LazyLogging
-
 import java.util.concurrent.CompletionStage
 import scala.collection.immutable
 import scala.concurrent.Future
 import scala.concurrent.duration.SECONDS
-import scala.util.{Failure, Random, Success, Try}
+import scala.util.{Failure, Success, Try}
 
 trait Cassandra extends AkkaSystem with LazyLogging {
   import com.example.URL._

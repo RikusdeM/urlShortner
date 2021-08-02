@@ -2,7 +2,6 @@ package com.example
 
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
-
 import java.time.Duration
 
 case class RoutesConf(askTimeout: Duration)
