@@ -6,7 +6,12 @@ import com.typesafe.scalalogging.LazyLogging
 import java.time.Duration
 
 case class RoutesConf(askTimeout: Duration)
-case class MyAppConf(host: String, port: Int, routes: RoutesConf)
+case class MyAppConf(
+    host: String,
+    port: Int,
+    routes: RoutesConf,
+    shortenedUrlLength: Int
+)
 case class CassandraConf(
     host: String,
     port: Int,
@@ -26,7 +31,8 @@ trait Config extends LazyLogging {
         MyAppConf(
           myAppConf.getString("host"),
           myAppConf.getInt("port"),
-          RoutesConf(routesConf.getDuration("askTimeout"))
+          RoutesConf(routesConf.getDuration("askTimeout")),
+          myAppConf.getInt("shortenedUrlLength")
         ),
         CassandraConf(
           cassandraConf.getString("host"),
@@ -42,7 +48,8 @@ trait Config extends LazyLogging {
           MyAppConf(
             "localhost",
             8080,
-            RoutesConf(Duration.ofSeconds(5L))
+            RoutesConf(Duration.ofSeconds(5L)),
+            8
           ),
           CassandraConf("localhost", 9042, "URLs", "URL")
         )

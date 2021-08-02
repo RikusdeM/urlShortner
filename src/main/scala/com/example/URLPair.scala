@@ -78,13 +78,13 @@ object URL extends LazyLogging {
   }
 }
 case class URLPair(shortened: URL, original: URL)
-object URLPair extends LazyLogging {
+object URLPair extends LazyLogging with Config {
   import Helpers._
   def apply(originalURL: URL): URLPair = {
     URLPair(
       URL(
         originalURL.protocol,
-        randomID(8),
+        randomID(config.myApp.shortenedUrlLength),
         originalURL.port
       ),
       originalURL
