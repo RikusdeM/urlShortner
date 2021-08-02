@@ -40,8 +40,5 @@ Note the embedded cassandra used in URLRoutesSpec requires Java8
 #### Routes
 Referer to [postman collection](/trex.postman_collection.json)
 
-
-
-
 ### Build App docker
 ```$ sbt docker:publishLocal```
