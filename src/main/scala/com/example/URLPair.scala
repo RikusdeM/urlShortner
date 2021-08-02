@@ -12,13 +12,25 @@ import scala.language.implicitConversions
 import scala.util.Random
 
 case class URLSimple(url: String)
-object URLSimple {
+object URLSimple extends LazyLogging {
   import URL._
   def apply(url: URL): URLSimple = {
     URLSimple(urlString(url)(true))
   }
+  def apply(): URLSimple = {
+    URLSimple("")
+  }
   implicit def URLSimpleToJson(urlSimple: URLSimple): String = {
     urlSimple.asJson.noSpaces
+  }
+
+  implicit def jsonToURLSimple(url: String): URLSimple = {
+    decode[URLSimple](url) match {
+      case Right(value) => value
+      case Left(e) =>
+        logger.error(e.toString)
+        URLSimple()
+    }
   }
 }
 
@@ -42,21 +54,22 @@ object URL extends LazyLogging {
       case _ => s"${url.protocol}$protocolSeparator${url.host}"
     }
 
-  val hostPortSplit: (String, String) => Option[URL] = (hostPort:String, protocol:String) => {
-    hostPort.split(portSeparator).toList match {
-      case host :: port :: Nil =>
-        Some(URL(protocol, host, Some(port.toInt)))
-      case host :: Nil => Some(URL(protocol, host, None))
-      case _ => None
+  val hostPortSplit: (String, String) => Option[URL] =
+    (hostPort: String, protocol: String) => {
+      hostPort.split(portSeparator).toList match {
+        case host :: port :: Nil =>
+          Some(URL(protocol, host, Some(port.toInt)))
+        case host :: Nil => Some(URL(protocol, host, None))
+        case _           => None
+      }
     }
-  }
 
   def stringToURL(urlString: String): Option[URL] = {
     urlString.split(protocolSeparator).toList match {
       case protocol :: hostPort :: Nil =>
-        hostPortSplit(hostPort,protocol)
+        hostPortSplit(hostPort, protocol)
       case hostPort :: Nil =>
-        hostPortSplit(hostPort,defaultServiceProtocol)
+        hostPortSplit(hostPort, defaultServiceProtocol)
       case _ => None
     }
   }
@@ -94,7 +107,7 @@ object URLPair extends LazyLogging with Config {
   implicit def URLPairToJson(urlPair: URLPair): String = {
     urlPair.asJson.noSpaces
   }
-  implicit def jsonToURL(urlPair: String): URLPair = {
+  implicit def jsonToURLPair(urlPair: String): URLPair = {
     decode[URLPair](urlPair) match {
       case Right(value) => value
       case Left(e) =>

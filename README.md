@@ -24,3 +24,17 @@ What we will look at:
 * How clean your design and implementation is.
 
 And of course you don’t have to over do it. In the end, we know that you have to work on it next to your daily life. A simple solution is perfectly fine. Should you hit a road block don’t hesitate to ask us.
+
+
+## How to run the code
+### Spin up cassandra
+```$docker-compose up```
+### Run the App
+```$ sbt run```
+### Testing
+```$ sbt test```
+#### Environment
+Note the embedded cassandra used in URLRoutesSpec requires Java8
+
+### Build App docker
+```sbt docker:publishLocal```

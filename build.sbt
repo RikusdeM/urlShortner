@@ -1,14 +1,18 @@
+import com.typesafe.config.{Config, ConfigFactory}
+
 lazy val akkaHttpVersion = "10.2.5"
 lazy val akkaVersion = "2.6.15"
 lazy val alpakkaVersion = "3.0.2"
 lazy val circeVersion = "0.14.1"
 lazy val akkaHttpJsonVersion = "1.35.3"
 
+lazy val appConfig = ConfigFactory.load()
+
 lazy val root = (project in file("."))
   .settings(
     inThisBuild(
       List(
-        organization := "com.rikus",
+        organization := "com.example",
         scalaVersion := "2.12.12"
       )
     ),
@@ -47,6 +51,7 @@ docker / dockerfile := {
   new Dockerfile {
     from("openjdk:8-jre")
     entryPoint(s"$targetDir/bin/${executableScriptName.value}")
+    expose(appConfig.getInt("myApp.port"))
     copy(appDir, targetDir, chown = "daemon:daemon")
   }
 }
