@@ -25,7 +25,7 @@ trait Cassandra extends AkkaSystem with LazyLogging {
   implicit val cassandraSession: CassandraSession =
     try {
       val sessionSettings: CassandraSessionSettings = CassandraSessionSettings()
-      CassandraSessionRegistry.get(system).sessionFor(sessionSettings)
+      CassandraSessionRegistry.get(actorSystem).sessionFor(sessionSettings)
     } catch {
       case exception: Exception =>
         throw new Exception(exception)

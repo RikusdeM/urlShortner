@@ -27,10 +27,13 @@ lazy val root = (project in file("."))
       "ch.qos.logback" % "logback-classic" % "1.2.3",
       "com.typesafe.akka" %% "akka-http-testkit" % akkaHttpVersion % Test,
       "com.typesafe.akka" %% "akka-actor-testkit-typed" % akkaVersion % Test,
-      "org.scalatest" %% "scalatest" % "3.1.4" % Test
+      "org.scalatest" %% "scalatest" % "3.1.4" % Test,
+      "org.cassandraunit" % "cassandra-unit" % "4.3.1.0" % Test
     )
   )
-  .enablePlugins(sbtdocker.DockerPlugin, JavaAppPackaging)
+  .enablePlugins(sbtdocker.DockerPlugin,
+    JavaAppPackaging,
+    SbtPlugin)
 
 resolvers += Resolver.mavenCentral
 resolvers += Resolver.typesafeIvyRepo("releases")

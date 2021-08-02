@@ -6,7 +6,7 @@ import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 
 trait AkkaSystem {
 
-  implicit val system: ActorSystem = ActorSystem("my-system")
+  implicit val actorSystem: ActorSystem = ActorSystem("my-system")
   implicit val executionContext: ExecutionContextExecutor = ExecutionContext.global
 
 }

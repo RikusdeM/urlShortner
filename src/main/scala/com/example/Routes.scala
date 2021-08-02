@@ -34,7 +34,6 @@ object Routes extends Cassandra with AkkaSystem with Config {
         get {
           parameters('url.as[String]) { url =>
             val urlPair = URLPair(stringToURL(url))
-            println(Console.RED + urlPair + Console.RESET)
             handleWrite {
               onComplete(
                 writeURLPair(urlPair)(table)
