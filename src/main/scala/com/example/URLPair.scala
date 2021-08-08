@@ -59,7 +59,7 @@ object URL extends LazyLogging {
       hostPort.split(portSeparator).toList match {
         case host :: port :: Nil =>
           Some(URL(protocol, host, Some(port.toInt)))
-        case host :: Nil => Some(URL(protocol, host, None))
+        case host :: Nil if host.nonEmpty => Some(URL(protocol, host, None))
         case _           => None
       }
     }
