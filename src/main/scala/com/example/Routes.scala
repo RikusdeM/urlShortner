@@ -31,7 +31,7 @@ object Routes extends Cassandra with AkkaSystem with Config {
   val URLAppRoutes =
     pathPrefix("trex") {
       path("shorten") {
-        get { //todo POST
+        post {
           parameters('url.as[String]) { urlStr =>
             stringToURL(urlStr) match {
               case Some(url) =>
@@ -79,7 +79,7 @@ object Routes extends Cassandra with AkkaSystem with Config {
         }
       } ~
       pathPrefix("trex") {
-        post {
+        get {
           entity(as[URLSimple]) { urlSimple =>
             URL.apply(urlSimple) match {
               case Some(url) =>

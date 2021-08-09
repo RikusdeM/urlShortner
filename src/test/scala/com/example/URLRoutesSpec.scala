@@ -79,8 +79,8 @@ class URLRoutesSpec
   }
 
   "URLRoutes" should {
-    "return shortened URL on (GET /trex/shorten?url=$URL)" in {
-      val request = HttpRequest(uri = s"/trex/shorten?url=$originalUrl")
+    "return shortened URL on (POST /trex/shorten?url=$URL)" in {
+      val request = Post(uri = s"/trex/shorten?url=$originalUrl")
       request ~> routes ~> check {
         status should ===(StatusCodes.OK)
         contentType should ===(ContentTypes.`application/json`)
@@ -114,14 +114,14 @@ class URLRoutesSpec
       }
     }
 
-    "return original URL on (POST /trex)" in {
+    "return original URL on (GET /trex)" in {
       val url = URLSimple(shortenedUrl)
       val userEntity =
         Marshal(url)
           .to[MessageEntity]
           .futureValue
 
-      val request = Post("/trex").withEntity(userEntity)
+      val request = HttpRequest(uri="/trex").withEntity(userEntity)
       request ~> routes ~> check {
         status should ===(StatusCodes.OK)
         contentType should ===(ContentTypes.`application/json`)

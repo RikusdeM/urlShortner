@@ -24,13 +24,13 @@
 			"response": []
 		},
 		{
-			"name": "shorten",
+			"name": "shortenJSON",
 			"request": {
 				"method": "POST",
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\"url\": \"www.reddit.com\"}",
+					"raw": "{\"url\": \"www.news24.com\"}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -54,10 +54,10 @@
 		{
 			"name": "shorten",
 			"request": {
-				"method": "GET",
+				"method": "POST",
 				"header": [],
 				"url": {
-					"raw": "localhost:8080/trex/shorten?url=http://2oceansvibe.com",
+					"raw": "localhost:8080/trex/shorten?url=http://reddit.com:80",
 					"host": [
 						"localhost"
 					],
@@ -69,7 +69,7 @@
 					"query": [
 						{
 							"key": "url",
-							"value": "http://2oceansvibe.com"
+							"value": "http://reddit.com:80"
 						}
 					]
 				}
@@ -82,7 +82,7 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "localhost:8080/trex?url=http://LJzuNaY0",
+					"raw": "localhost:8080/trex?url=http://z9keaG1J",
 					"host": [
 						"localhost"
 					],
@@ -93,7 +93,7 @@
 					"query": [
 						{
 							"key": "url",
-							"value": "http://LJzuNaY0"
+							"value": "http://z9keaG1J"
 						}
 					]
 				}
@@ -101,13 +101,16 @@
 			"response": []
 		},
 		{
-			"name": "lookup",
+			"name": "lookupJSON",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
 			"request": {
-				"method": "POST",
+				"method": "GET",
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\"url\": \"http://ID3vZXlS\"}",
+					"raw": "{\"url\": \"http://2eXSlsHO\"}",
 					"options": {
 						"raw": {
 							"language": "json"
