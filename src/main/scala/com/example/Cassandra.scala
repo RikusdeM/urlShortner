@@ -36,36 +36,64 @@ trait Cassandra extends AkkaSystem with LazyLogging {
       .runWith(Sink.head)
 
   def writeURLPair(
-      urlPair: URLPair
+      urlPair: URLPair,
+      checkIfExists: Boolean = true
   )(table: String): Future[immutable.Seq[URLPair]] = {
-    val statementBinder: (URLPair, PreparedStatement) => BoundStatement =
-      (urlPair, preparedStatement) =>
-        preparedStatement.bind(
-          urlString(urlPair.shortened)(true),
-          urlString(urlPair.original)(false)
-        )
 
-    val written: Future[immutable.Seq[URLPair]] = Source(urlPair :: Nil)
-      .via(
-        CassandraFlow.create(
-          CassandraWriteSettings.defaults,
-          s"INSERT INTO $table(${shortened_url.toString},${original_url.toString}) VALUES (?, ?)",
-          statementBinder
+    def write: Future[immutable.Seq[URLPair]] = {
+      val statementBinder: (URLPair, PreparedStatement) => BoundStatement =
+        (urlPair, preparedStatement) =>
+          preparedStatement.bind(
+            urlString(urlPair.shortened)(true),
+            urlString(urlPair.original)(false)
+          )
+
+      val written: Future[immutable.Seq[URLPair]] = Source(urlPair :: Nil)
+        .via(
+          CassandraFlow.create(
+            CassandraWriteSettings.defaults,
+            s"INSERT INTO $table(${shortened_url.toString},${original_url.toString}) VALUES (?, ?)",
+            statementBinder
+          )
         )
-      )
-      .runWith(Sink.seq)
-    written
+        .runWith(Sink.seq)
+      written
+    }
+
+    readURLPair(urlPair.original)(table)(checkIfExists)
+      .map({
+        case Some(Some(shortUrl)) =>
+          immutable.Seq(URLPair(shortUrl, urlPair.original))
+        case _ => ??? //todo: Trigger write
+      })
+      .recoverWith({
+        case e: Exception =>
+          logger.error(e.toString, e)
+          write
+      })
   }
 
   def readURLPair(
-      shortedURL: URL
-  )(table: String): Future[Option[Option[URL]]] = {
-    CassandraSource(
-      s"SELECT ${original_url.toString} FROM $table WHERE ${shortened_url.toString} = ?",
-      urlString(shortedURL)(true)
-    ).map(rowToURL)
-      .filter(url => url.isDefined)
-      .runWith(Sink.headOption)
+      providedURL: URL
+  )(table: String)(checkIfExists: Boolean): Future[Option[Option[URL]]] = {
+    def lookup(
+        key: String,
+        value: String,
+        shortened: Boolean
+    ): Future[Option[Option[URL]]] = {
+      CassandraSource(
+        s"SELECT $value FROM $table WHERE $key = ? ALLOW FILTERING",
+        urlString(providedURL)(shortened)
+      ).map(rowToURL(_, value))
+        .filter(url => url.isDefined)
+        .runWith(Sink.headOption)
+    }
+    checkIfExists match {
+      case true =>
+        lookup(original_url.toString, shortened_url.toString, false)
+      case false =>
+        lookup(shortened_url.toString, original_url.toString, true)
+    }
   }
 }
 

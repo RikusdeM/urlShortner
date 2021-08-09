@@ -16,7 +16,7 @@ lazy val root = (project in file("."))
         scalaVersion := "2.12.12"
       )
     ),
-    name := "urlShortner",
+    name := "trex-rikus-de-milander",
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
       "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,

@@ -84,9 +84,9 @@ object URL extends LazyLogging {
         URL()
     }
   }
-  def rowToURL(cassandraRow: Row): Option[URL] = {
+  def rowToURL(cassandraRow: Row,value:String): Option[URL] = {
     stringToURL(
-      cassandraRow.getString(s"${original_url.toString}")
+      cassandraRow.getString(value)
     )
   }
 }
