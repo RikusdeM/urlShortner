@@ -44,8 +44,8 @@ trait Cassandra extends AkkaSystem with LazyLogging {
       val statementBinder: (URLPair, PreparedStatement) => BoundStatement =
         (urlPair, preparedStatement) =>
           preparedStatement.bind(
-            urlString(urlPair.shortened)(true),
-            urlString(urlPair.original)(false)
+            urlString(urlPair.shortened)(shortened = true),
+            urlString(urlPair.original)(shortened = false)
           )
 
       val written: Future[immutable.Seq[URLPair]] = Source(urlPair :: Nil)
@@ -61,10 +61,10 @@ trait Cassandra extends AkkaSystem with LazyLogging {
     }
 
     readURLPair(urlPair.original)(table)(checkIfExists)
-      .map({
+      .collect({
         case Some(Some(shortUrl)) =>
-          immutable.Seq(URLPair(shortUrl, urlPair.original))
-        case _ => ??? //todo: Trigger write
+          immutable.Seq(URLPair(shortUrl, urlPair.original)) //todo: Option[URLPair]
+        //case None => None
       })
       .recoverWith({
         case e: Exception =>
@@ -90,9 +90,9 @@ trait Cassandra extends AkkaSystem with LazyLogging {
     }
     checkIfExists match {
       case true =>
-        lookup(original_url.toString, shortened_url.toString, false)
+        lookup(original_url.toString, shortened_url.toString, shortened = false)
       case false =>
-        lookup(shortened_url.toString, original_url.toString, true)
+        lookup(shortened_url.toString, original_url.toString, shortened = true)
     }
   }
 }
