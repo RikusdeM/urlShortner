@@ -6,6 +6,7 @@ import com.datastax.oss.driver.api.core.cql.Row
 import org.scalatest.matchers.should.Matchers
 import URL._
 import Helpers.randomID
+import com.example.Columns.original_url
 
 class URLMock extends AnyWordSpec with Matchers with IdiomaticMockito {
 
@@ -26,7 +27,7 @@ class URLMock extends AnyWordSpec with Matchers with IdiomaticMockito {
       ) shouldBe (Some(
         URL(defaultServiceProtocol, urlStrHost, None)
       ))
-      rowToURL(row) shouldBe None
+      rowToURL(row,original_url.toString) shouldBe None
     }
 
     "RandomID" should {
