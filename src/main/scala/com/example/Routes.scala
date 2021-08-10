@@ -103,19 +103,15 @@ object RoutesHelpers {
     sd {
       case Success(optionalURL) =>
         optionalURL match {
-          case Some(optionUrl) => {
-            optionUrl match {
-              case Some(urlFinal) =>
-                complete(
-                  HttpEntity(
-                    ContentTypes.`application/json`,
-                    URLSimple(urlString(urlFinal)(false))
-                  )
-                )
-              case None => cassandraReadError
-            }
+          case Some(Some(urlFinal)) => {
+            complete(
+              HttpEntity(
+                ContentTypes.`application/json`,
+                URLSimple(urlString(urlFinal)(false))
+              )
+            )
           }
-          case None => cassandraReadError
+          case _ => cassandraReadError
         }
       case Failure(ex) =>
         internalServerError(ex)

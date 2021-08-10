@@ -63,8 +63,12 @@ trait Cassandra extends AkkaSystem with LazyLogging {
     readURLPair(urlPair.original)(table)(checkIfExists)
       .collect({
         case Some(Some(shortUrl)) =>
-          immutable.Seq(URLPair(shortUrl, urlPair.original)) //todo: Option[URLPair]
-        //case None => None
+          immutable.Seq(URLPair(shortUrl, urlPair.original))
+        case None =>
+          val message =
+            s"Could not find ${shortened_url.toString} for key: ${urlString(urlPair.original)(shortened = false)}" +
+              s" in Cassandra. \n Generating it ..."
+          throw CassandraLookupFailed(message)
       })
       .recoverWith({
         case e: Exception =>
@@ -94,6 +98,13 @@ trait Cassandra extends AkkaSystem with LazyLogging {
       case false =>
         lookup(shortened_url.toString, original_url.toString, shortened = true)
     }
+  }
+}
+
+case class CassandraLookupFailed(message: String) extends Exception(message) {
+  def this(message: String, cause: Throwable) = {
+    this(message)
+    initCause(cause)
   }
 }
 
@@ -168,7 +179,6 @@ object CassandraBootstrap extends Cassandra with Config {
       startCassandraConnection(retriesCount + 1)
     }
   }
-
 }
 
 object Columns extends Enumeration {
